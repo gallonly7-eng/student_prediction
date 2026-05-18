@@ -1,0 +1,15 @@
+{
+  "features": [
+    "Study Hours per Week",
+    "Attendance Rate",
+    "Previous Grades",
+    "Participation_Enc",
+    "ParentEdu_Enc"
+  ],
+  "target": "Passed_Binary",
+  "n_train": 32000,
+  "n_test": 8000,
+  "best_model": "Backpropagation",
+  "best_accuracy": 99.91,
+  "threshold": 73.865
+}

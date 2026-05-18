@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Perbandingan Model — StudiPredict AI{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h2 class="fw-bold mb-0">
+    <i class="bi bi-bar-chart-fill text-primary me-2"></i>Perbandingan 5 Algoritma ML
+  </h2>
+  <a href="/" class="btn btn-outline-primary">
+    <i class="bi bi-house me-1"></i>Kembali
+  </a>
+</div>
+
+<!-- Info Model Terbaik -->
+<div class="alert alert-success d-flex align-items-center gap-3 mb-4 p-3">
+  <i class="bi bi-trophy-fill fs-2 text-warning"></i>
+  <div>
+    <strong class="fs-5">Model Terbaik: {{ best_model }}</strong><br>
+    <span>Akurasi: <strong>{{ results[best_model]['Accuracy'] }}%</strong> |
+    MAE: {{ results[best_model]['MAE'] }} |
+    RMSE: {{ results[best_model]['RMSE'] }} |
+    R²: {{ results[best_model]['R2'] }}</span>
+  </div>
+</div>
+
+<!-- Grafik Perbandingan -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-dark text-white">
+    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Grafik Perbandingan Metrik Evaluasi</h5>
+  </div>
+  <div class="card-body text-center">
+    <img src="{{ url_for('static', filename='img/perbandingan_model.png') }}"
+         class="img-fluid rounded" alt="Perbandingan Model"
+         style="max-height: 500px;">
+  </div>
+</div>
+
+<!-- Tabel Perbandingan -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-secondary text-white">
+    <h5 class="mb-0"><i class="bi bi-table me-2"></i>Tabel Metrik Evaluasi Lengkap</h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>Ranking</th>
+            <th>Algoritma</th>
+            <th class="text-center">Accuracy</th>
+            <th class="text-center">MAE</th>
+            <th class="text-center">RMSE</th>
+            <th class="text-center">R² Score</th>
+            <th class="text-center">Keterangan</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set colors = {"Logistic Regression":"#4e8fde","ANN (MLP)":"#4caf50",
+            "RNN/LSTM (Deep MLP)":"#9c27b0","K-Means Clustering":"#ff9800","Backpropagation":"#e91e63"} %}
+          {% for name, r in ranked %}
+          <tr {% if name == best_model %}class="table-success fw-bold"{% endif %}>
+            <td class="text-center">
+              {% if loop.index == 1 %}<i class="bi bi-trophy-fill text-warning fs-5"></i>
+              {% elif loop.index == 2 %}<i class="bi bi-award-fill text-secondary fs-5"></i>
+              {% elif loop.index == 3 %}<i class="bi bi-award text-warning fs-5"></i>
+              {% else %}<span class="text-muted">{{ loop.index }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="dot me-2" style="display:inline-block;width:12px;height:12px;
+                border-radius:50%;background:{{ colors.get(name,'#888') }};"></span>
+              {{ name }}
+              {% if name == best_model %}
+                <span class="badge bg-success ms-1">TERBAIK</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="d-flex align-items-center justify-content-center gap-2">
+                <div class="progress" style="width:80px;height:8px;">
+                  <div class="progress-bar bg-success" style="width:{{ r.Accuracy }}%;"></div>
+                </div>
+                <strong>{{ r.Accuracy }}%</strong>
+              </div>
+            </td>
+            <td class="text-center text-danger">{{ r.MAE }}</td>
+            <td class="text-center text-warning">{{ r.RMSE }}</td>
+            <td class="text-center text-info">{{ r.R2 }}</td>
+            <td class="text-center">
+              {% if name == "K-Means Clustering" %}
+                <span class="badge bg-secondary">Unsupervised</span>
+                <br><small>Silhouette: {{ r.get('Silhouette','N/A') }}</small>
+              {% elif r.Accuracy > 99 %}
+                <span class="badge bg-success">Sangat Baik</span>
+              {% elif r.Accuracy > 95 %}
+                <span class="badge bg-info">Baik</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Cukup</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Confusion Matrix -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-info text-white">
+    <h5 class="mb-0"><i class="bi bi-grid-3x3 me-2"></i>Confusion Matrix Semua Model</h5>
+  </div>
+  <div class="card-body text-center">
+    <img src="{{ url_for('static', filename='img/confusion_matrix_all.png') }}"
+         class="img-fluid rounded" alt="Confusion Matrix"
+         style="max-width:100%;">
+    <p class="text-muted small mt-2">
+      Baris = Label Aktual | Kolom = Prediksi | TN (atas-kiri), FP (atas-kanan), FN (bawah-kiri), TP (bawah-kanan)
+    </p>
+  </div>
+</div>
+
+<!-- Loss Curves -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-purple text-white" style="background:#6a1b9a!important;">
+    <h5 class="mb-0 text-white"><i class="bi bi-activity me-2"></i>Loss Curve Training</h5>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      {% for fname, label in [
+        ("loss_curve_ann.png","ANN (MLP) — Adam"),
+        ("loss_curve_rnn.png","RNN/LSTM (Deep MLP) — Adam"),
+        ("loss_curve_bp.png","Backpropagation — SGD")
+      ] %}
+      <div class="col-md-4">
+        <div class="text-center">
+          <p class="fw-semibold text-muted mb-2">{{ label }}</p>
+          <img src="{{ url_for('static', filename='img/' + fname) }}"
+               class="img-fluid rounded border" alt="{{ label }}">
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Analisis Perbandingan Teks -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-dark text-white">
+    <h5 class="mb-0"><i class="bi bi-file-text-fill me-2"></i>Analisis Perbandingan Algoritma</h5>
+  </div>
+  <div class="card-body">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <h6 class="text-primary fw-bold"><i class="bi bi-check2-circle me-1"></i>Supervised Learning</h6>
+        <ul class="list-unstyled">
+          <li class="mb-2">
+            <span class="badge bg-danger me-2">Backpropagation</span>
+            <strong>99.91%</strong> — Model terbaik dengan SGD optimizer dan fungsi sigmoid.
+            Konvergensi stabil karena learning rate konstan.
+          </li>
+          <li class="mb-2">
+            <span class="badge" style="background:#4e8fde;">Logistic Regression</span>
+            <strong>99.88%</strong> — Akurasi sangat tinggi dengan komputasi ringan.
+            Cocok untuk interpretasi koefisien fitur.
+          </li>
+          <li class="mb-2">
+            <span class="badge bg-success me-2">ANN (MLP)</span>
+            <strong>99.75%</strong> — Jaringan 2 hidden layer dengan Adam optimizer.
+            Lebih fleksibel untuk pola non-linear.
+          </li>
+          <li class="mb-2">
+            <span class="badge" style="background:#9c27b0;">RNN/LSTM</span>
+            <strong>99.61%</strong> — Deep MLP 5 layer sebagai simulasi sequential learning.
+            Arsitektur paling dalam dan kompleks.
+          </li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <h6 class="text-warning fw-bold"><i class="bi bi-diagram-3 me-1"></i>Unsupervised Learning</h6>
+        <ul class="list-unstyled">
+          <li class="mb-2">
+            <span class="badge" style="background:#ff9800;">K-Means</span>
+            <strong>50.85%</strong> — Clustering tanpa label. Performanya terbatas karena
+            tidak bisa belajar dari label kelulusan. Silhouette Score 0.22 menunjukkan
+            cluster cukup terpisah secara geometris.
+          </li>
+        </ul>
+        <hr>
+        <h6 class="text-success fw-bold"><i class="bi bi-lightbulb me-1"></i>Kesimpulan</h6>
+        <p class="small">
+          Untuk prediksi kelulusan mahasiswa, <strong>Backpropagation (SGD)</strong>
+          adalah pilihan terbaik dengan akurasi 99.91% dan RMSE terendah (0.0296).
+          Logistic Regression menjadi runner-up yang lebih sederhana dan mudah diinterpretasi.
+          K-Means tidak direkomendasikan untuk prediksi karena bersifat unsupervised.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Tentang Proyek — StudiPredict AI{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h2 class="fw-bold mb-0">
+    <i class="bi bi-info-circle-fill text-primary me-2"></i>Tentang Proyek
+  </h2>
+  <a href="/" class="btn btn-outline-primary"><i class="bi bi-house me-1"></i>Kembali</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-8">
+    <!-- Deskripsi -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body p-4">
+        <h4 class="fw-bold text-primary mb-3">
+          <i class="bi bi-book-fill me-2"></i>Prediksi Kelulusan Mahasiswa
+        </h4>
+        <p>
+          Proyek ini adalah implementasi <strong>Ujian Tengah Semester (UTS) Praktikum Kecerdasan Buatan</strong>
+          yang membangun sistem prediksi kelulusan mahasiswa menggunakan 5 algoritma Machine Learning.
+        </p>
+        <p>
+          Dataset yang digunakan adalah <strong>Student Performance Prediction Dataset</strong> dari Kaggle
+          dengan 40.000 data mahasiswa dan fitur akademik seperti jam belajar, tingkat kehadiran,
+          nilai sebelumnya, keikutsertaan ekstrakulikuler, dan pendidikan orang tua.
+        </p>
+
+        <h6 class="fw-bold mt-4 mb-3 text-secondary">Pipeline Machine Learning:</h6>
+        <div class="row g-2">
+          {% for step, desc in [
+            ("1. Data Collection","Dataset dari Kaggle (40.000 sampel)"),
+            ("2. Preprocessing","Missing values, encoding, normalisasi, clip outlier"),
+            ("3. Feature Engineering","Skor akademik tertimbang sebagai target"),
+            ("4. EDA","Visualisasi distribusi, korelasi, feature importance"),
+            ("5. Model Training","Training 5 algoritma ML"),
+            ("6. Evaluasi","Accuracy, MAE, RMSE, R², Confusion Matrix"),
+            ("7. Deployment","Flask web app dengan Bootstrap 5"),
+          ] %}
+          <div class="col-6">
+            <div class="d-flex gap-2 align-items-start">
+              <i class="bi bi-arrow-right-circle-fill text-primary mt-1 flex-shrink-0"></i>
+              <div><strong>{{ step }}</strong><br><small class="text-muted">{{ desc }}</small></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Algoritma -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="bi bi-cpu-fill me-2"></i>Detail 5 Algoritma ML</h5>
+      </div>
+      <div class="accordion accordion-flush" id="algoAccordion">
+        {% set algos = [
+          ("1","Logistic Regression","#4e8fde",
+           "Analogi Linear Regression untuk klasifikasi biner. Memodelkan probabilitas kelulusan dengan fungsi sigmoid. Optimizer: L-BFGS, C=1.0, max_iter=1000.",
+           "Sederhana, cepat, mudah diinterpretasi. Akurasi 99.88%."),
+          ("2","ANN (Artificial Neural Network)","#4caf50",
+           "Jaringan saraf tiruan dengan 2 hidden layer (64 dan 32 neuron). Aktivasi ReLU. Optimizer: Adam. Early stopping dengan validation fraction 10%.",
+           "Mampu menangkap pola non-linear. Akurasi 99.75%."),
+          ("3","RNN/LSTM (Deep Sequential MLP)","#9c27b0",
+           "Disimulasikan menggunakan Deep MLP 5 hidden layer (128-64-64-32-16) dengan aktivasi tanh (sama seperti gating LSTM). Batch size 64, adaptive learning rate.",
+           "Arsitektur paling dalam. Aktivasi tanh meniru mekanisme gating LSTM. Akurasi 99.61%."),
+          ("4","K-Means Clustering","#ff9800",
+           "Algoritma clustering unsupervised dengan k=2. Cluster disesuaikan dengan label aktual menggunakan majority vote. Evaluasi dengan Silhouette Score.",
+           "Tidak membutuhkan label. Berguna untuk eksplorasi struktur data. Silhouette Score 0.22."),
+          ("5","Backpropagation","#e91e63",
+           "MLPClassifier dengan SGD optimizer, fungsi aktivasi sigmoid (logistic), learning rate konstan 0.01, momentum 0.9. Menonjolkan mekanisme backpropagation klasik.",
+           "Model terbaik (99.91%). Konvergensi stabil karena momentum SGD."),
+        ] %}
+        {% for num, name, color, desc, result in algos %}
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button {% if num != '5' %}collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse"
+                    data-bs-target="#algo{{ num }}">
+              <span class="dot me-2" style="display:inline-block;width:12px;height:12px;
+                border-radius:50%;background:{{ color }};"></span>
+              <strong>Model {{ num }}: {{ name }}</strong>
+            </button>
+          </h2>
+          <div id="algo{{ num }}" class="accordion-collapse collapse {% if num == '5' %}show{% endif %}">
+            <div class="accordion-body">
+              <p><strong>Konfigurasi:</strong> {{ desc }}</p>
+              <p class="mb-0"><strong>Hasil:</strong> {{ result }}</p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <!-- Statistik -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-primary text-white">
+        <h6 class="mb-0"><i class="bi bi-database-fill me-2"></i>Statistik Dataset</h6>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for label, val in [
+          ("Total Data","40.000 sampel"),
+          ("Data Training",meta.n_train | string + " sampel (80%)"),
+          ("Data Testing",meta.n_test | string + " sampel (20%)"),
+          ("Jumlah Fitur","5 fitur"),
+          ("Kelas Target","2 (Lulus / Tidak Lulus)"),
+          ("Missing Values","~5% per kolom"),
+          ("Metode Imputing","Median (numerik), Mode (kategorikal)"),
+          ("Standardisasi","StandardScaler"),
+        ] %}
+        <li class="list-group-item d-flex justify-content-between py-2">
+          <span class="text-muted">{{ label }}</span>
+          <strong>{{ val }}</strong>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- Tech Stack -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-success text-white">
+        <h6 class="mb-0"><i class="bi bi-code-slash me-2"></i>Tech Stack</h6>
+      </div>
+      <ul class="list-group list-group-flush small">
+        {% for tech, desc in [
+          ("Python 3.12","Bahasa pemrograman utama"),
+          ("scikit-learn","Training 5 algoritma ML"),
+          ("Flask","Web framework backend"),
+          ("Bootstrap 5","Frontend responsive"),
+          ("Pandas / NumPy","Manipulasi data"),
+          ("Matplotlib / Seaborn","Visualisasi"),
+          ("Joblib","Serialisasi model (.pkl)"),
+        ] %}
+        <li class="list-group-item d-flex gap-2 py-2">
+          <i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i>
+          <div><strong>{{ tech }}</strong> — {{ desc }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- File Model -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-info text-white">
+        <h6 class="mb-0"><i class="bi bi-archive-fill me-2"></i>File Model Tersimpan</h6>
+      </div>
+      <ul class="list-group list-group-flush small font-monospace">
+        {% for f in ["scaler.pkl","logistic_regression.pkl","ann_model.pkl",
+                     "rnn_model.pkl","kmeans_model.pkl","backpropagation.pkl",
+                     "pca.pkl","results.json","meta.json"] %}
+        <li class="list-group-item py-1">
+          <i class="bi bi-file-earmark-fill text-warning me-2"></i>{{ f }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

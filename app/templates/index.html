@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+{% block title %}Prediksi Kelulusan Mahasiswa — AI Model{% endblock %}
+
+{% block content %}
+
+<!-- Hero Banner -->
+<div class="hero-banner rounded-4 p-4 mb-4 text-white"
+     style="background: linear-gradient(135deg, #1565c0 0%, #7b1fa2 100%);">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h1 class="fw-bold mb-2">
+        <i class="bi bi-mortarboard-fill me-2"></i>Prediksi Kelulusan Mahasiswa
+      </h1>
+      <p class="mb-1 opacity-90">
+        Sistem prediksi berbasis <strong>Machine Learning</strong> menggunakan
+        5 algoritma: Logistic Regression, ANN, RNN/LSTM, K-Means, dan Backpropagation.
+      </p>
+      <small class="opacity-75">
+        <i class="bi bi-database-fill me-1"></i>Dataset: 40.000 data mahasiswa |
+        Model terbaik: <strong>{{ best_model }}</strong>
+        ({{ best_accuracy }}% accuracy)
+      </small>
+    </div>
+    <div class="col-md-4 text-center d-none d-md-block">
+      <i class="bi bi-brain" style="font-size:5rem; opacity:0.4;"></i>
+    </div>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
+
+<!-- Form Prediksi -->
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-primary text-white py-3">
+        <h5 class="mb-0"><i class="bi bi-person-fill me-2"></i>Input Data Mahasiswa</h5>
+      </div>
+      <div class="card-body p-4">
+        <form action="/predict" method="POST" id="prediksiForm">
+
+          <!-- Identitas -->
+          <div class="section-title text-primary fw-semibold mb-3 border-bottom pb-2">
+            <i class="bi bi-person-badge me-2"></i>Identitas Mahasiswa
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nama Mahasiswa</label>
+              <input type="text" class="form-control" name="nama"
+                     placeholder="Contoh: Budi Santoso" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">NIM</label>
+              <input type="text" class="form-control" name="nim"
+                     placeholder="Contoh: 220411001">
+            </div>
+          </div>
+
+          <!-- Data Akademik -->
+          <div class="section-title text-primary fw-semibold mb-3 border-bottom pb-2">
+            <i class="bi bi-book-fill me-2"></i>Data Akademik
+          </div>
+          <div class="row g-3 mb-4">
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">
+                Jam Belajar / Minggu
+                <span class="badge bg-secondary ms-1">0–40</span>
+              </label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="study_hours"
+                       id="study_hours" min="0" max="40" step="0.5"
+                       value="10" required oninput="updateSlider('study_hours','sl_study')">
+                <span class="input-group-text">jam</span>
+              </div>
+              <input type="range" class="form-range mt-1" id="sl_study"
+                     min="0" max="40" step="0.5" value="10"
+                     oninput="syncInput('study_hours','sl_study')">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">
+                Tingkat Kehadiran
+                <span class="badge bg-secondary ms-1">0–100%</span>
+              </label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="attendance"
+                       id="attendance" min="0" max="100" step="1"
+                       value="75" required oninput="updateSlider('attendance','sl_attend')">
+                <span class="input-group-text">%</span>
+              </div>
+              <input type="range" class="form-range mt-1" id="sl_attend"
+                     min="0" max="100" step="1" value="75"
+                     oninput="syncInput('attendance','sl_attend')">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">
+                Nilai Sebelumnya
+                <span class="badge bg-secondary ms-1">0–100</span>
+              </label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="prev_grades"
+                       id="prev_grades" min="0" max="100" step="0.5"
+                       value="65" required oninput="updateSlider('prev_grades','sl_grade')">
+                <span class="input-group-text">poin</span>
+              </div>
+              <input type="range" class="form-range mt-1" id="sl_grade"
+                     min="0" max="100" step="0.5" value="65"
+                     oninput="syncInput('prev_grades','sl_grade')">
+            </div>
+
+          </div>
+
+          <!-- Data Tambahan -->
+          <div class="section-title text-primary fw-semibold mb-3 border-bottom pb-2">
+            <i class="bi bi-people-fill me-2"></i>Data Tambahan
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Ikut Ekstrakulikuler?</label>
+              <select class="form-select" name="participation">
+                <option value="Yes">✅ Ya</option>
+                <option value="No" selected>❌ Tidak</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Pendidikan Orang Tua</label>
+              <select class="form-select" name="parent_edu">
+                <option value="High School">SMA/Sederajat</option>
+                <option value="Associate">Diploma (D3/D4)</option>
+                <option value="Bachelor" selected>Sarjana (S1)</option>
+                <option value="Master">Magister (S2)</option>
+                <option value="PhD">Doktor (S3)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Pilih Model -->
+          <div class="section-title text-primary fw-semibold mb-3 border-bottom pb-2">
+            <i class="bi bi-cpu-fill me-2"></i>Pilih Algoritma Prediksi
+          </div>
+          <div class="row g-2 mb-4">
+            {% set model_options = [
+              ("backprop", "Backpropagation", "Terbaik — 99.91%", "bi-star-fill text-warning"),
+              ("ann",      "ANN (MLP)",       "Akurasi 99.75%",   "bi-diagram-3"),
+              ("logistic", "Logistic Regression","Akurasi 99.88%","bi-bar-chart"),
+              ("rnn",      "RNN/LSTM",        "Deep Learning",    "bi-layers"),
+              ("kmeans",   "K-Means",         "Clustering",       "bi-grid-3x3-gap"),
+            ] %}
+            {% for val, label, sub, icon in model_options %}
+            <div class="col-md-4 col-6">
+              <div class="model-card p-3 rounded-3 border h-100"
+                   data-val="{{ val }}"
+                   onclick="selectModel('{{ val }}')">
+                <input type="radio" name="selected_model" value="{{ val }}"
+                       id="m_{{ val }}" class="d-none"
+                       {% if val == 'backprop' %}checked{% endif %}>
+                <i class="bi {{ icon }} me-1"></i>
+                <span class="fw-semibold">{{ label }}</span><br>
+                <small class="text-muted">{{ sub }}</small>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" class="btn btn-primary btn-lg w-100 py-3" id="submitBtn">
+            <i class="bi bi-cpu-fill me-2"></i>
+            <span>Prediksi Kelulusan Sekarang</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Info -->
+  <div class="col-lg-4">
+
+    <!-- Panduan Penggunaan -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-info text-white">
+        <h6 class="mb-0"><i class="bi bi-lightbulb-fill me-2"></i>Panduan Penggunaan</h6>
+      </div>
+      <div class="card-body small">
+        <ol class="ps-3 mb-0">
+          <li class="mb-2">Isi <strong>identitas mahasiswa</strong> (nama & NIM)</li>
+          <li class="mb-2">Masukkan <strong>data akademik</strong>: jam belajar, kehadiran, dan nilai</li>
+          <li class="mb-2">Pilih <strong>data tambahan</strong>: ekskul & pendidikan orang tua</li>
+          <li class="mb-2">Pilih <strong>algoritma ML</strong> yang diinginkan</li>
+          <li>Klik tombol <strong>Prediksi</strong></li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Rumus Skor Akademik -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-warning text-dark">
+        <h6 class="mb-0"><i class="bi bi-calculator-fill me-2"></i>Formula Skor Akademik</h6>
+      </div>
+      <div class="card-body small">
+        <p class="mb-2">Model menggunakan skor tertimbang:</p>
+        <div class="bg-light rounded p-2 font-monospace small">
+          Score = (Nilai × 0.50)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (Kehadiran × 0.35)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (Jam Belajar × 1.50)
+        </div>
+        <p class="mt-2 mb-0 text-muted">
+          Lulus jika Score ≥ <strong>73.86</strong>
+        </p>
+        <div id="liveScore" class="mt-2 fw-bold text-primary"></div>
+      </div>
+    </div>
+
+    <!-- Daftar Model -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-dark text-white">
+        <h6 class="mb-0"><i class="bi bi-list-stars me-2"></i>5 Algoritma ML</h6>
+      </div>
+      <ul class="list-group list-group-flush small">
+        {% set algos = [
+          ("#4e8fde","Logistic Regression","Prediksi probabilitas biner"),
+          ("#4caf50","ANN (MLP)","Jaringan saraf 2 hidden layer"),
+          ("#9c27b0","RNN/LSTM","Deep sequential MLP 5 layer"),
+          ("#ff9800","K-Means","Clustering unsupervised k=2"),
+          ("#e91e63","Backpropagation","SGD sigmoid, 99.91% ← Terbaik"),
+        ] %}
+        {% for color, name, desc in algos %}
+        <li class="list-group-item d-flex align-items-start gap-2 py-2">
+          <span class="dot mt-1" style="background:{{ color }};width:10px;height:10px;border-radius:50%;flex-shrink:0;"></span>
+          <div><strong>{{ name }}</strong><br><span class="text-muted">{{ desc }}</span></div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Sync slider ↔ input number ─────────────────────────────────
+function syncInput(inputId, sliderId) {
+  document.getElementById(inputId).value = document.getElementById(sliderId).value;
+  updateLiveScore();
+}
+function updateSlider(inputId, sliderId) {
+  document.getElementById(sliderId).value = document.getElementById(inputId).value;
+  updateLiveScore();
+}
+
+// ── Live score preview ──────────────────────────────────────────
+function updateLiveScore() {
+  const hours  = parseFloat(document.getElementById("study_hours").value) || 0;
+  const attend = parseFloat(document.getElementById("attendance").value)   || 0;
+  const grades = parseFloat(document.getElementById("prev_grades").value)  || 0;
+  const score  = grades * 0.50 + attend * 0.35 + hours * 1.50;
+  const lulus  = score >= 73.86;
+  document.getElementById("liveScore").innerHTML =
+    `Skor Anda: <span class="${lulus ? 'text-success' : 'text-danger'}">${score.toFixed(2)}</span>
+     <span class="badge ${lulus ? 'bg-success' : 'bg-danger'} ms-1">
+       ${lulus ? 'Kemungkinan LULUS' : 'Kemungkinan TIDAK LULUS'}
+     </span>`;
+}
+
+// ── Pilih model dengan visual feedback ─────────────────────────
+// FIX: pakai data-val attribute, bukan onclick string selector
+function selectModel(val) {
+  // Reset semua card
+  document.querySelectorAll(".model-card").forEach(c => {
+    c.classList.remove("border-primary", "bg-primary-subtle");
+    c.style.borderColor = "";
+  });
+  // Highlight card yang dipilih
+  const chosen = document.querySelector(`.model-card[data-val="${val}"]`);
+  if (chosen) {
+    chosen.classList.add("border-primary", "bg-primary-subtle");
+  }
+  // Set radio button
+  const radio = document.getElementById("m_" + val);
+  if (radio) radio.checked = true;
+}
+
+// ── Submit dengan loading state ─────────────────────────────────
+// FIX: pakai timeout + re-enable agar tidak stuck kalau ada error
+document.getElementById("prediksiForm").addEventListener("submit", function(e) {
+  // Validasi radio terpilih
+  const selected = document.querySelector('input[name="selected_model"]:checked');
+  if (!selected) {
+    e.preventDefault();
+    alert("Pilih salah satu algoritma prediksi terlebih dahulu!");
+    return;
+  }
+
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
+
+  // Re-enable tombol setelah 15 detik (failsafe agar tidak stuck selamanya)
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-cpu-fill me-2"></i><span>Prediksi Kelulusan Sekarang</span>';
+  }, 15000);
+});
+
+// ── Init saat halaman dimuat ────────────────────────────────────
+document.addEventListener("DOMContentLoaded", function() {
+  updateLiveScore();
+  // Highlight Backpropagation sebagai default
+  selectModel("backprop");
+});
+</script>
+{% endblock %}
